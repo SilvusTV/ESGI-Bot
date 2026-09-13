@@ -9,7 +9,7 @@ export default async function EventUtil(client: any): Promise<void> {
   const ext = isDist ? 'js' : 'ts';
   const pattern = `${process.cwd()}/${base}/events/*/*.${ext}`;
 
-  (await pGlob(pattern)).map(async (eventFile) => {
+  for (const eventFile of await pGlob(pattern)) {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const event = require(eventFile);
 
@@ -18,5 +18,5 @@ export default async function EventUtil(client: any): Promise<void> {
     } else {
       client.on(event.name, (...args: unknown[]) => event.execute(client, ...args));
     }
-  });
+  }
 }

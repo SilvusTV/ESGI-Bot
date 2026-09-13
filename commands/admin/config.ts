@@ -10,7 +10,7 @@ export = {
   usage: 'config set [key] [value]',
   examples: ['config set customCommandPrefix !', 'config get customCommandPrefix'],
   defaultMemberPermissions: PermissionFlagsBits.Administrator,
-  description: 'Lire ou modifier la configuration de la guilde.',
+  description: 'Lire ou modifier la configuration du bot.',
   options: [
     {
       name: 'action',
@@ -28,7 +28,11 @@ export = {
       description: 'Clé de configuration',
       type: ApplicationCommandOptionType.String,
       required: false,
-      choices: [{ name: 'customCommandPrefix', value: CONFIG_KEYS.customCommandPrefix }],
+      choices: [
+        { name: 'Préfixe des commandes personnalisées', value: CONFIG_KEYS.customCommandPrefix },
+        { name: 'Salon des rappels de devoirs', value: CONFIG_KEYS.homeworkChannelId },
+        { name: 'Rappels de devoirs activés', value: CONFIG_KEYS.homeworkReminderEnabled },
+      ],
     },
     {
       name: 'value',
@@ -43,14 +47,14 @@ export = {
     }
 
     const configRepository = new ConfigRepository();
-    configRepository.ensureDefaultGuildConfig(interaction.guildId);
+    configRepository.ensureDefaults();
 
     const action = interaction.options.getString('action', true);
     const key = interaction.options.getString('key');
     const value = interaction.options.getString('value');
 
     if (action === 'list') {
-      const rows = configRepository.listByGuild(interaction.guildId);
+      const rows = configRepository.list();
       const formatted = rows.map((row) => `- \`${row.key}\` = \`${row.value}\``).join('\n');
       return interaction.reply({ content: formatted || 'Aucune config trouvée.', ephemeral: true });
     }
@@ -64,7 +68,7 @@ export = {
     const validatedKey = key as (typeof allowedKeys)[number];
 
     if (action === 'get') {
-      const row = configRepository.find(interaction.guildId, validatedKey);
+      const row = configRepository.find(validatedKey);
       return interaction.reply({
         content: row ? `\`${row.key}\` = \`${row.value}\`` : 'Aucune valeur trouvée.',
         ephemeral: true,
@@ -83,7 +87,11 @@ export = {
         });
       }
 
-      const updated = configRepository.upsert(interaction.guildId, validatedKey, value.trim());
+      if (validatedKey === CONFIG_KEYS.homeworkReminderEnabled && !['true', 'false'].includes(value.trim())) {
+        return interaction.reply({ content: 'Cette valeur doit être `true` ou `false`.', ephemeral: true });
+      }
+
+      const updated = configRepository.upsert(validatedKey, value.trim());
       return interaction.reply({
         content: `Config mise à jour: \`${updated?.key}\` = \`${updated?.value}\``,
         ephemeral: true,

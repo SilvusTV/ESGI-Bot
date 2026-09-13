@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import CommandUtil from './utils/handlers/CommandUtil';
 import EventUtil from './utils/handlers/EventUtil';
 import SelectUtil from './utils/handlers/SelectUtil';
-import { closeDb } from './utils/db';
+import { closeDb, ensureDatabaseInitialized } from './utils/db';
 
 dotenv.config();
 
@@ -21,8 +21,6 @@ const client = new Client({
 (client as any).commands = new Collection();
 ['selects'].forEach((x) => ((client as any)[x] = new Collection()));
 
-[CommandUtil, EventUtil, SelectUtil].forEach((handler: (c: Client) => unknown) => handler(client));
-
 process.on('exit', (code) => {
   closeDb();
   console.log(`le processus s'est arrêté avec le code ${code}!`);
@@ -35,4 +33,14 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 process.on('warning', (...args) => console.log(...args));
 
-client.login(process.env.DISCORD_TOKEN as string);
+async function bootstrap(): Promise<void> {
+  if (!process.env.DISCORD_TOKEN) throw new Error('La variable DISCORD_TOKEN est obligatoire.');
+  await ensureDatabaseInitialized();
+  await Promise.all([CommandUtil(client), EventUtil(client), SelectUtil(client)]);
+  await client.login(process.env.DISCORD_TOKEN);
+}
+
+void bootstrap().catch((error) => {
+  console.error('Impossible de démarrer le bot:', error);
+  process.exitCode = 1;
+});

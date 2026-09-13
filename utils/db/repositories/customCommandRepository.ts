@@ -1,90 +1,31 @@
-import { and, eq, like } from 'drizzle-orm';
+import { eq, like } from 'drizzle-orm';
 import { getDb, type AppDb } from '../client';
 import { customCommand, type CustomCommand } from '../schema';
 
-type CreateCustomCommandInput = {
-  guildId: string;
-  title: string;
-  command: string;
-  description: string;
-  response: string;
-};
-
-type UpdateCustomCommandInput = {
-  title?: string;
-  description?: string;
-  response?: string;
-  isActive?: boolean;
-};
+type CreateInput = { title: string; command: string; description: string; response: string };
+type UpdateInput = { title?: string; description?: string; response?: string; isActive?: boolean };
 
 export class CustomCommandRepository {
   constructor(private readonly db: AppDb = getDb()) {}
+  normalizeCommandName(raw: string): string { return raw.trim().toLowerCase().replace(/\s+/g, '-'); }
 
-  normalizeCommandName(raw: string): string {
-    return raw.trim().toLowerCase().replace(/\s+/g, '-');
+  findByCommand(commandName: string): CustomCommand | undefined {
+    return this.db.select().from(customCommand).where(eq(customCommand.command, this.normalizeCommandName(commandName))).get();
   }
-
-  findByCommand(guildId: string, commandName: string): CustomCommand | undefined {
-    const normalized = this.normalizeCommandName(commandName);
-    return this.db
-      .select()
-      .from(customCommand)
-      .where(and(eq(customCommand.guildId, guildId), eq(customCommand.command, normalized)))
-      .get();
+  list(): CustomCommand[] { return this.db.select().from(customCommand).all(); }
+  search(term: string): CustomCommand[] {
+    return this.db.select().from(customCommand).where(like(customCommand.command, `%${this.normalizeCommandName(term)}%`)).all();
   }
-
-  listByGuild(guildId: string): CustomCommand[] {
-    return this.db.select().from(customCommand).where(eq(customCommand.guildId, guildId)).all();
+  create(input: CreateInput): CustomCommand | undefined {
+    const command = this.normalizeCommandName(input.command);
+    this.db.insert(customCommand).values({ ...input, title: input.title.trim(), description: input.description.trim(), command, isActive: true }).run();
+    return this.findByCommand(command);
   }
-
-  listByGuildAndCommandLike(guildId: string, term: string): CustomCommand[] {
-    const normalized = this.normalizeCommandName(term);
-    return this.db
-      .select()
-      .from(customCommand)
-      .where(and(eq(customCommand.guildId, guildId), like(customCommand.command, `%${normalized}%`)))
-      .all();
+  update(commandName: string, input: UpdateInput): number {
+    return this.db.update(customCommand).set({ ...input, updatedAt: new Date().toISOString() })
+      .where(eq(customCommand.command, this.normalizeCommandName(commandName))).run().changes;
   }
-
-  create(input: CreateCustomCommandInput): CustomCommand | undefined {
-    const normalized = this.normalizeCommandName(input.command);
-    this.db
-      .insert(customCommand)
-      .values({
-        guildId: input.guildId,
-        title: input.title.trim(),
-        command: normalized,
-        description: input.description.trim(),
-        response: input.response,
-        isActive: true,
-      })
-      .run();
-
-    return this.findByCommand(input.guildId, normalized);
-  }
-
-  update(guildId: string, commandName: string, input: UpdateCustomCommandInput): number {
-    const normalized = this.normalizeCommandName(commandName);
-    const result = this.db
-      .update(customCommand)
-      .set({
-        ...input,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(and(eq(customCommand.guildId, guildId), eq(customCommand.command, normalized)))
-      .run();
-
-    return result.changes;
-  }
-
-  delete(guildId: string, commandName: string): number {
-    const normalized = this.normalizeCommandName(commandName);
-    const result = this.db
-      .delete(customCommand)
-      .where(and(eq(customCommand.guildId, guildId), eq(customCommand.command, normalized)))
-      .run();
-
-    return result.changes;
+  delete(commandName: string): number {
+    return this.db.delete(customCommand).where(eq(customCommand.command, this.normalizeCommandName(commandName))).run().changes;
   }
 }
-

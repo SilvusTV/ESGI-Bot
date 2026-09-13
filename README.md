@@ -2,6 +2,8 @@
 
 Un noyau (kernel) minimaliste, moderne et extensible pour créer des bots Discord avec TypeScript et discord.js v14.
 
+Le projet intègre désormais le domaine scolaire de l'ancien DSD-GES Bot : gestion dynamique des intervenants (`/intervenant`), des matières (`/matiere`), des devoirs (`/devoir`), mémo des contacts (`/memo`) et rappels hebdomadaires (`/rappeldevoir`). Le bot fonctionne avec une configuration et une base uniques pour son serveur Discord, et les sélections liées à la base utilisent l'autocomplétion.
+
 Ce projet n'est pas un bot « clé en main »: c'est une base solide pensée pour être réutilisée comme fondation d'autres bots. Il fournit la structure, les utilitaires et les conventions nécessaires pour ajouter rapidement vos commandes, événements et composants interactifs (select menus, etc.).
 
 ---
@@ -101,11 +103,11 @@ import { ConfigRepository, CONFIG_KEYS } from './utils/db';
 
 const repo = new ConfigRepository();
 
-// Initialise les valeurs par défaut de config pour une guilde
-repo.ensureDefaultGuildConfig(interaction.guildId!);
+// Initialise les valeurs par défaut de la configuration globale
+repo.ensureDefaults();
 
 // lecture
-const prefix = repo.getValue(interaction.guildId!, CONFIG_KEYS.customCommandPrefix) || '!';
+const prefix = repo.getValue(CONFIG_KEYS.customCommandPrefix) || '!';
 ```
 
 ---

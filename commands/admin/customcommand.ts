@@ -123,13 +123,12 @@ export = {
         });
       }
 
-      const exists = repository.findByCommand(interaction.guildId, command);
+      const exists = repository.findByCommand(command);
       if (exists) {
         return interaction.reply({ content: 'Cette commande existe déjà.', ephemeral: true });
       }
 
       const created = repository.create({
-        guildId: interaction.guildId,
         title,
         command,
         description,
@@ -143,7 +142,7 @@ export = {
     }
 
     if (subcommand === 'list') {
-      const rows = repository.listByGuild(interaction.guildId);
+      const rows = repository.list();
       if (!rows.length) {
         return interaction.reply({ content: 'Aucune commande custom pour ce serveur.', ephemeral: true });
       }
@@ -170,7 +169,7 @@ export = {
         });
       }
 
-      const changes = repository.update(interaction.guildId, command, {
+      const changes = repository.update(command, {
         title: title || undefined,
         description: description || undefined,
         response: response || undefined,
@@ -186,7 +185,7 @@ export = {
 
     if (subcommand === 'delete') {
       const command = interaction.options.getString('command', true);
-      const changes = repository.delete(interaction.guildId, command);
+      const changes = repository.delete(command);
       if (!changes) {
         return interaction.reply({ content: 'Commande introuvable.', ephemeral: true });
       }

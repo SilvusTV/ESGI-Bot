@@ -9,9 +9,9 @@ export = {
     }
 
     const configRepository = new ConfigRepository();
-    configRepository.ensureDefaultGuildConfig(message.guild.id);
+    configRepository.ensureDefaults();
 
-    const prefix = configRepository.getValue(message.guild.id, CONFIG_KEYS.customCommandPrefix) || '!';
+    const prefix = configRepository.getValue(CONFIG_KEYS.customCommandPrefix) || '!';
     if (!message.content.startsWith(prefix)) {
       return;
     }
@@ -23,7 +23,7 @@ export = {
 
     const commandName = raw.split(/\s+/)[0];
     const customCommandRepository = new CustomCommandRepository();
-    const command = customCommandRepository.findByCommand(message.guild.id, commandName);
+    const command = customCommandRepository.findByCommand(commandName);
 
     if (!command || !command.isActive) {
       return;

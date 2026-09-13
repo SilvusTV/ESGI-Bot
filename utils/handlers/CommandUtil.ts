@@ -12,26 +12,26 @@ export default async function CommandUtil(client: any): Promise<void> {
   const ext = isDist ? 'js' : 'ts';
   const pattern = `${process.cwd()}/${base}/commands/*/*.${ext}`;
 
-  (await pGlob(pattern)).map(async (cmdFile) => {
+  for (const cmdFile of await pGlob(pattern)) {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const cmd = require(cmdFile);
 
-    if (!cmd.name) return Logger.warn(`no command name : ${cmdFile}`);
+    if (!cmd.name) { Logger.warn(`no command name : ${cmdFile}`); continue; }
 
-    if (!cmd.description && cmd.type !== ApplicationCommandType.User)
-      return Logger.warn(`no command description : ${cmdFile}`);
+    if (!cmd.description && cmd.type !== ApplicationCommandType.User) { Logger.warn(`no command description : ${cmdFile}`); continue; }
 
-    if (!cmd.category) return Logger.warn(`no command category : ${cmdFile}`);
+    if (!cmd.category) { Logger.warn(`no command category : ${cmdFile}`); continue; }
 
     /*if(!cmd.defaultMemberPermissions) return Logger.warn(`no command permissions : ${cmdFile}`)*/
 
-    if (cmd.ownerOnly === undefined) return Logger.warn(`no command ownerOnly : ${cmdFile}`);
+    if (cmd.ownerOnly === undefined) { Logger.warn(`no command ownerOnly : ${cmdFile}`); continue; }
 
-    if (!cmd.usage) return Logger.warn(`no command usage : ${cmdFile}`);
+    if (!cmd.usage) { Logger.warn(`no command usage : ${cmdFile}`); continue; }
 
-    if (!cmd.examples) return Logger.warn(`no command examples : ${cmdFile}`);
+    if (!cmd.examples) { Logger.warn(`no command examples : ${cmdFile}`); continue; }
 
+    if (client.commands.has(cmd.name)) { Logger.warn(`duplicate command name: ${cmd.name}`); continue; }
     client.commands.set(cmd.name, cmd);
     Logger.command(`/${cmd.name} loaded`);
-  });
+  }
 }

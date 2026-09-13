@@ -25,6 +25,7 @@ export function getDb(): AppDb {
 
   sqlite = new Database(dbPath);
   sqlite.pragma('journal_mode = WAL');
+  sqlite.pragma('foreign_keys = ON');
   db = drizzle(sqlite, { schema });
 
   return db;

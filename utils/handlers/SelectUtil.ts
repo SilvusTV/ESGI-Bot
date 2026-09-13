@@ -5,18 +5,20 @@ import Logger from '../Logger';
 const pGlob = promisify(glob);
 
 export default async function SelectUtil(client: any): Promise<void> {
-  // Support both TS (dev) and JS (dist or legacy) select menus
   const isDist = __dirname.includes('dist');
   const base = isDist ? 'dist' : '.';
-  const pattern = `${process.cwd()}/${base}/selects/*/*.{ts,js}`;
+  const ext = isDist ? 'js' : 'ts';
+  const pattern = `${process.cwd()}/${base}/selects/*/*.${ext}`;
 
-  (await pGlob(pattern)).map(async (selectMenuFile) => {
+  for (const selectMenuFile of await pGlob(pattern)) {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const selectMenu = require(selectMenuFile);
-    if (!selectMenu.name)
-      return Logger.warn(
+    if (!selectMenu.name) {
+      Logger.warn(
         `Select menu non-fonctionnel: ajouter un nom à votre menu ↓\nFichier → ${selectMenuFile}`,
       );
+      continue;
+    }
     client.selects.set(selectMenu.name, selectMenu);
-  });
+  }
 }
