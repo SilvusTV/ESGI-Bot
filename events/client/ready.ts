@@ -2,6 +2,7 @@ import { ActivityType } from 'discord.js';
 import Logger from '../../utils/Logger';
 import { ConfigRepository, ensureDatabaseInitialized } from '../../utils/db';
 import { startHomeworkReminder } from '../../utils/handlers/HomeworkReminder';
+import { initializeGesAccountManager } from '../../utils/ges/GesAccountManager';
 
 export = {
   name: 'clientReady',
@@ -14,6 +15,7 @@ export = {
 
     configRepository.ensureDefaults();
     startHomeworkReminder(client);
+    await initializeGesAccountManager(client);
 
     client.user.setPresence({ activities: [{ name: 'You', type: ActivityType.Watching }], status: 'online' });
 

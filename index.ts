@@ -4,6 +4,7 @@ import CommandUtil from './utils/handlers/CommandUtil';
 import EventUtil from './utils/handlers/EventUtil';
 import SelectUtil from './utils/handlers/SelectUtil';
 import { closeDb, ensureDatabaseInitialized } from './utils/db';
+import { startWebServer } from './utils/ges/webServer';
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ process.on('warning', (...args) => console.log(...args));
 async function bootstrap(): Promise<void> {
   if (!process.env.DISCORD_TOKEN) throw new Error('La variable DISCORD_TOKEN est obligatoire.');
   await ensureDatabaseInitialized();
+  startWebServer();
   await Promise.all([CommandUtil(client), EventUtil(client), SelectUtil(client)]);
   await client.login(process.env.DISCORD_TOKEN);
 }

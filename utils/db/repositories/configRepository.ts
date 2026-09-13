@@ -6,6 +6,7 @@ export const CONFIG_KEYS = {
   customCommandPrefix: 'customCommandPrefix',
   homeworkChannelId: 'homeworkChannelId',
   homeworkReminderEnabled: 'homeworkReminderEnabled',
+  gesAccountUserId: 'gesAccountUserId',
 } as const;
 
 export type ConfigKey = (typeof CONFIG_KEYS)[keyof typeof CONFIG_KEYS];

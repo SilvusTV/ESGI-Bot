@@ -43,6 +43,10 @@ Ce projet n'est pas un bot « clé en main »: c'est une base solide pensée pou
    - Créez un fichier `.env` à la racine avec au minimum:
      ```env
      DISCORD_TOKEN=VotreTokenDeBotIci
+     # Serveur web utilisé pour la connexion MyGES
+     WEB_PORT=3000
+     WEB_HOST=127.0.0.1
+     WEB_PUBLIC_URL=https://bot.example.com
      # Optionnel / recommandé
      NODE_ENV=development
      # CLIENT_ID et GUILD_ID sont utiles si vous publiez des commandes slash par guilde
@@ -196,6 +200,11 @@ Assurez‑vous de créer vos `StringSelectMenuBuilder` avec `setCustomId('choose
 - `DISCORD_TOKEN` (requis): token du bot pour `client.login()`.
 - `NODE_ENV` (optionnel): `development` | `production`.
 - `CLIENT_ID`, `GUILD_ID` (optionnel): utiles pour les scripts d’enregistrement de commandes (si vous les ajoutez).
+- `WEB_PORT` (optionnel, `3000` par défaut): port du micro-serveur de connexion MyGES.
+- `WEB_HOST` (optionnel, `127.0.0.1` par défaut): interface d’écoute. Conservez cette valeur derrière un reverse proxy local.
+- `WEB_PUBLIC_URL` (requis pour un accès distant): URL HTTPS publique placée dans les messages privés Discord.
+
+Le token MyGES est conservé uniquement en mémoire et disparaît à chaque redémarrage. Les identifiants saisis dans le formulaire ne sont jamais écrits en base ou dans les logs. En production, exposez impérativement le formulaire derrière HTTPS (Nginx, Caddy ou un proxy équivalent), puis renseignez cette adresse dans `WEB_PUBLIC_URL`.
 
 ---
 
