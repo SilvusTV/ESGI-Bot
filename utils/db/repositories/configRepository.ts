@@ -6,8 +6,10 @@ export const CONFIG_KEYS = {
   customCommandPrefix: 'customCommandPrefix',
   homeworkChannelId: 'homeworkChannelId',
   homeworkReminderEnabled: 'homeworkReminderEnabled',
+  homeworkReminderCron: 'homeworkReminderCron',
   gesAccountUserId: 'gesAccountUserId',
   planningChannelId: 'planningChannelId',
+  planningCron: 'planningCron',
   planningMessageId: 'planningMessageId',
   planningWeekStart: 'planningWeekStart',
 } as const;
@@ -21,6 +23,8 @@ export class ConfigRepository {
     this.db.insert(config).values([
       { key: CONFIG_KEYS.customCommandPrefix, value: '!' },
       { key: CONFIG_KEYS.homeworkReminderEnabled, value: 'false' },
+      { key: CONFIG_KEYS.homeworkReminderCron, value: '0 10 * * 6' },
+      { key: CONFIG_KEYS.planningCron, value: '0 18 * * 0' },
     ]).onConflictDoNothing({ target: config.key }).run();
   }
 

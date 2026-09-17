@@ -1,8 +1,16 @@
 import { ApplicationCommandOptionType, ChannelType, PermissionFlagsBits } from 'discord.js';
 import { ConfigRepository, CONFIG_KEYS } from '../../utils/db';
+import { refreshHomeworkReminder } from '../../utils/handlers/HomeworkReminder';
+import { refreshPlanningReminder } from '../../utils/handlers/PlanningReminder';
+import { parseWeeklyCron } from '../../utils/handlers/schedule';
 
 const allowedKeys = [CONFIG_KEYS.customCommandPrefix, CONFIG_KEYS.homeworkChannelId,
-  CONFIG_KEYS.homeworkReminderEnabled, CONFIG_KEYS.planningChannelId] as const;
+  CONFIG_KEYS.homeworkReminderEnabled, CONFIG_KEYS.homeworkReminderCron,
+  CONFIG_KEYS.planningChannelId, CONFIG_KEYS.planningCron] as const;
+const cronHelp = 'Format hebdomadaire : `minute heure * * jour` (heure de Paris, jour 0=dimanche à 6=samedi). Exemple : `30 17 * * 5` = vendredi à 17h30.';
+const scheduleLabel = (key: string, value: string) =>
+  key === CONFIG_KEYS.homeworkReminderCron || key === CONFIG_KEYS.planningCron
+    ? ` — ${parseWeeklyCron(value)?.label || 'horaire invalide'}` : '';
 
 export = {
   name: 'config',
@@ -11,7 +19,7 @@ export = {
   usage: 'config set [key] [value]',
   examples: ['config set customCommandPrefix !', 'config get customCommandPrefix'],
   defaultMemberPermissions: PermissionFlagsBits.Administrator,
-  description: 'Lire ou modifier la configuration du bot.',
+  description: 'Lire ou modifier la configuration et les horaires hebdomadaires du serveur.',
   options: [
     {
       name: 'action',
@@ -33,12 +41,14 @@ export = {
         { name: 'Préfixe des commandes personnalisées', value: CONFIG_KEYS.customCommandPrefix },
         { name: 'Salon des rappels de devoirs', value: CONFIG_KEYS.homeworkChannelId },
         { name: 'Rappels de devoirs activés', value: CONFIG_KEYS.homeworkReminderEnabled },
+        { name: 'Horaire des devoirs (cron hebdomadaire)', value: CONFIG_KEYS.homeworkReminderCron },
         { name: 'Salon du planning', value: CONFIG_KEYS.planningChannelId },
+        { name: 'Horaire du planning (cron hebdomadaire)', value: CONFIG_KEYS.planningCron },
       ],
     },
     {
       name: 'value',
-      description: 'Nouvelle valeur',
+      description: 'Valeur ; horaire : minute heure * * jour (ex. 30 17 * * 5)',
       type: ApplicationCommandOptionType.String,
       required: false,
     },
@@ -65,8 +75,8 @@ export = {
 
     if (action === 'list') {
       const rows = configRepository.list();
-      const formatted = rows.map((row) => `- \`${row.key}\` = \`${row.value}\``).join('\n');
-      return interaction.reply({ content: formatted || 'Aucune config trouvée.', ephemeral: true });
+      const formatted = rows.map((row) => `- \`${row.key}\` = \`${row.value}\`${scheduleLabel(row.key, row.value)}`).join('\n');
+      return interaction.reply({ content: `${formatted || 'Aucune config trouvée.'}\n\n${cronHelp}`, ephemeral: true });
     }
 
     if (!key || !allowedKeys.includes(key)) {
@@ -80,7 +90,7 @@ export = {
     if (action === 'get') {
       const row = configRepository.find(validatedKey);
       return interaction.reply({
-        content: row ? `\`${row.key}\` = \`${row.value}\`` : 'Aucune valeur trouvée.',
+        content: row ? `\`${row.key}\` = \`${row.value}\`${scheduleLabel(row.key, row.value)}${validatedKey === CONFIG_KEYS.homeworkReminderCron || validatedKey === CONFIG_KEYS.planningCron ? `\n${cronHelp}` : ''}` : 'Aucune valeur trouvée.',
         ephemeral: true,
       });
     }
@@ -109,9 +119,15 @@ export = {
         return interaction.reply({ content: 'Cette valeur doit être `true` ou `false`.', ephemeral: true });
       }
 
-      const updated = configRepository.upsert(validatedKey, effectiveValue);
+      const isCronKey = validatedKey === CONFIG_KEYS.homeworkReminderCron || validatedKey === CONFIG_KEYS.planningCron;
+      const parsed = isCronKey ? parseWeeklyCron(effectiveValue) : null;
+      if (isCronKey && !parsed) return interaction.reply({ content: `Horaire invalide. ${cronHelp}`, ephemeral: true });
+
+      const updated = configRepository.upsert(validatedKey, parsed?.expression || effectiveValue);
+      if (validatedKey === CONFIG_KEYS.homeworkReminderCron) refreshHomeworkReminder(client, interaction.guildId);
+      if (validatedKey === CONFIG_KEYS.planningCron) refreshPlanningReminder(client, interaction.guildId);
       return interaction.reply({
-        content: `Config mise à jour: \`${updated?.key}\` = \`${updated?.value}\``,
+        content: `Config mise à jour: \`${updated?.key}\` = \`${updated?.value}\`${parsed ? ` — ${parsed.label}` : ''}`,
         ephemeral: true,
       });
     }

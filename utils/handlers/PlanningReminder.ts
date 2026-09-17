@@ -4,8 +4,9 @@ import { CONFIG_KEYS, ConfigRepository } from '../db';
 import { getMyGesService } from '../ges/MyGesService';
 import { buildWeeklyPlanning, weekStart } from '../ges/planning';
 import Logger from '../Logger';
+import { parseWeeklyCron, SCHEDULE_TIMEZONE } from './schedule';
 
-let started = false;
+const tasks = new Map<string, { expression: string; task: ReturnType<typeof cron.schedule> }>();
 
 export async function publishWeeklyPlanning(client: Client, guildId: string, monday: string): Promise<'sent' | 'updated'> {
   const config = new ConfigRepository(guildId);
@@ -32,23 +33,29 @@ export async function publishWeeklyPlanning(client: Client, guildId: string, mon
   return 'sent';
 }
 
-export function startPlanningReminder(client: Client): void {
-  if (started) return;
-  started = true;
-  cron.schedule('0 18 * * 0', async () => {
-    for (const guild of client.guilds.cache.values()) {
-      const guildId = guild.id;
-      if (!new ConfigRepository(guildId).getValue(CONFIG_KEYS.planningChannelId)) continue;
-      try {
-        await publishWeeklyPlanning(client, guildId, weekStart(new Date(), true));
-      } catch (error) {
-        Logger.error(`Envoi du planning ${guildId} impossible: ${String(error)}`);
-        if ((error as Error).message === 'MYGES_AUTH_REQUIRED') {
-          const userId = new ConfigRepository(guildId).getValue(CONFIG_KEYS.gesAccountUserId);
-          if (userId) await getMyGesService(guildId).validateOrNotify(userId).catch(() => undefined);
-        }
+export function refreshPlanningReminder(client: Client, guildId: string): void {
+  const config = new ConfigRepository(guildId);
+  const schedule = parseWeeklyCron(config.getValue(CONFIG_KEYS.planningCron) || '0 18 * * 0');
+  if (!schedule) { Logger.error(`Cron du planning invalide pour ${guildId}.`); return; }
+  if (tasks.get(guildId)?.expression === schedule.expression) return;
+  const task = cron.schedule(schedule.expression, async () => {
+    if (!client.guilds.cache.has(guildId)) return;
+    if (!new ConfigRepository(guildId).getValue(CONFIG_KEYS.planningChannelId)) return;
+    try {
+      await publishWeeklyPlanning(client, guildId, weekStart(new Date(), true));
+    } catch (error) {
+      Logger.error(`Envoi du planning ${guildId} impossible: ${String(error)}`);
+      if ((error as Error).message === 'MYGES_AUTH_REQUIRED') {
+        const userId = new ConfigRepository(guildId).getValue(CONFIG_KEYS.gesAccountUserId);
+        if (userId) await getMyGesService(guildId).validateOrNotify(userId).catch(() => undefined);
       }
     }
-  }, { timezone: 'Europe/Paris' });
-  Logger.info('Planning hebdomadaire planifié le dimanche à 18h (Europe/Paris).');
+  }, { timezone: SCHEDULE_TIMEZONE });
+  tasks.get(guildId)?.task.stop();
+  tasks.set(guildId, { expression: schedule.expression, task });
+  Logger.info(`Planning ${guildId} planifié ${schedule.label}.`);
+}
+
+export function startPlanningReminder(client: Client): void {
+  for (const guild of client.guilds.cache.values()) refreshPlanningReminder(client, guild.id);
 }
