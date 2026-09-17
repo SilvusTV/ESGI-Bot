@@ -14,19 +14,19 @@ export async function publishWeeklyPlanning(client: Client, monday: string): Pro
   const channel = await client.channels.fetch(channelId);
   if (!channel || channel.type !== ChannelType.GuildText) throw new Error('PLANNING_CHANNEL_UNAVAILABLE');
 
-  const embed = await buildWeeklyPlanning(client, monday);
+  const embeds = await buildWeeklyPlanning(client, monday);
   const previousId = config.getValue(CONFIG_KEYS.planningMessageId);
   if (previousId && config.getValue(CONFIG_KEYS.planningWeekStart) === monday) {
     try {
       const message = await channel.messages.fetch(previousId);
-      await message.edit({ embeds: [embed] });
+      await message.edit({ embeds });
       return 'updated';
     } catch (error) {
       if (!(error instanceof DiscordAPIError && error.code === 10008)) throw error;
     }
   }
 
-  const message = await channel.send({ embeds: [embed] });
+  const message = await channel.send({ embeds });
   config.upsert(CONFIG_KEYS.planningMessageId, message.id);
   config.upsert(CONFIG_KEYS.planningWeekStart, monday);
   return 'sent';

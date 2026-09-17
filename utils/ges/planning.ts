@@ -40,17 +40,17 @@ export function weekStart(reference = new Date(), nextWeek = false): string {
   return addDays(today, 1 - (weekday || 7) + (nextWeek ? 7 : 0));
 }
 
-export async function buildWeeklyPlanning(client: Client, monday: string): Promise<EmbedBuilder> {
+export async function buildWeeklyPlanning(client: Client, monday: string): Promise<EmbedBuilder[]> {
   const events = await myGesService.getAgenda(parisMidnight(monday), parisMidnight(addDays(monday, 7)));
-  const from = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', timeZone: PARIS }).format(parisMidnight(monday));
-  const to = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: PARIS }).format(parisMidnight(addDays(monday, 6)));
-  const embed = new EmbedBuilder().setColor(0x735b8b).setTitle(`📅 Planning du ${from} au ${to}`).setTimestamp();
-  if (client.user) embed.setFooter({ text: client.user.tag, iconURL: client.user.displayAvatarURL() });
+  const embeds: EmbedBuilder[] = [];
   for (let offset = 0; offset < 7; offset++) {
     const day = addDays(monday, offset);
-    const lines = events.map((event) => {
+    const lines = events.filter(event => {
+      const start = eventDate(event.start_date);
+      return start !== null && parisDateKey(start) === day;
+    }).sort((a, b) => (eventDate(a.start_date)?.getTime() || 0) - (eventDate(b.start_date)?.getTime() || 0)).map((event) => {
       const start = eventDate(event.start_date); const end = eventDate(event.end_date);
-      if (!start || parisDateKey(start) !== day) return null;
+      if (!start) return null;
       const room = Array.isArray(event.rooms) && event.rooms[0] && typeof event.rooms[0] === 'object' ? event.rooms[0] as Record<string, unknown> : null;
       const discipline = event.discipline && typeof event.discipline === 'object' ? event.discipline as Record<string, unknown> : null;
       const when = `<t:${Math.floor(start.getTime() / 1000)}:t>${end ? `–<t:${Math.floor(end.getTime() / 1000)}:t>` : ''}`;
@@ -58,9 +58,14 @@ export async function buildWeeklyPlanning(client: Client, monday: string): Promi
       const details = [location, text(event.modality), discipline ? text(discipline.teacher) : ''].filter(Boolean).join(' — ');
       return `**${when} · ${text(event.name) || text(event.type) || 'Cours'}**${details ? `\n${details}` : ''}`;
     }).filter((line): line is string => Boolean(line));
+    if (!lines.length) continue;
     const label = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: PARIS }).format(parisMidnight(day));
-    if (lines.length) embed.addFields({ name: label.charAt(0).toUpperCase() + label.slice(1), value: lines.join('\n\n').slice(0, 1024) });
+    const embed = new EmbedBuilder().setColor(0x735b8b)
+      .setTitle(`📅 ${label.charAt(0).toUpperCase() + label.slice(1)}`)
+      .setDescription(lines.join('\n\n').slice(0, 4096));
+    embeds.push(embed);
   }
-  if (!embed.data.fields?.length) embed.setDescription('Aucun cours prévu cette semaine.');
-  return embed;
+  if (!embeds.length) embeds.push(new EmbedBuilder().setColor(0x735b8b).setTitle('📅 Planning de la semaine').setDescription('Aucun cours prévu cette semaine.'));
+  if (client.user) embeds[0].setFooter({ text: client.user.tag, iconURL: client.user.displayAvatarURL() });
+  return embeds;
 }
