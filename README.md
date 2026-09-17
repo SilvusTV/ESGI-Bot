@@ -4,7 +4,7 @@ Un noyau (kernel) minimaliste, moderne et extensible pour créer des bots Discor
 
 Le projet intègre désormais le domaine scolaire de l'ancien DSD-GES Bot : gestion dynamique des intervenants (`/intervenant`), des matières (`/matiere`), des devoirs (`/devoir`), mémo des contacts (`/memo`) et rappels hebdomadaires (`/rappeldevoir`). Le bot fonctionne avec une configuration et une base uniques pour son serveur Discord, et les sélections liées à la base utilisent l'autocomplétion.
 
-Le salon du planning se configure avec `/config action:set key:Salon du planning channel:#salon`. Chaque mercredi à 18 h (`Europe/Paris`), le bot y publie les cours MyGES du jeudi et du vendredi.
+Le salon du planning se configure avec `/config action:set key:Salon du planning channel:#salon`. Chaque dimanche à 18 h (`Europe/Paris`), le bot y publie le planning de la semaine suivante, en omettant les journées sans cours. La commande `/planning` publie ou actualise le planning de la semaine en cours dans ce salon.
 
 La création d’une matière peut partir directement d’un cours détecté dans l’agenda avec `/matiere ajouter`. Le professeur correspondant est associé grâce à son `teacher_id` et ajouté localement si nécessaire. Pour un devoir, `/devoir ajouter` propose les prochaines séances de la matière comme échéances, tout en conservant les champs de date et d’heure manuels pour une échéance hors cours.
 

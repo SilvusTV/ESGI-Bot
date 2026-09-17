@@ -33,12 +33,21 @@ function eventDate(value: unknown): Date | null {
 
 function text(value: unknown): string { return typeof value === 'string' ? value : ''; }
 
-export async function buildThursdayFridayPlanning(client: Client, reference = new Date()): Promise<EmbedBuilder> {
-  const today = parisDateKey(reference); const thursday = addDays(today, 1); const friday = addDays(today, 2);
-  const events = await myGesService.getAgenda(parisMidnight(thursday), parisMidnight(addDays(friday, 1)));
-  const embed = new EmbedBuilder().setColor(0x735b8b).setTitle('📅 Planning de jeudi et vendredi').setTimestamp();
+export function weekStart(reference = new Date(), nextWeek = false): string {
+  const today = parisDateKey(reference);
+  const [year, month, day] = today.split('-').map(Number);
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return addDays(today, 1 - (weekday || 7) + (nextWeek ? 7 : 0));
+}
+
+export async function buildWeeklyPlanning(client: Client, monday: string): Promise<EmbedBuilder> {
+  const events = await myGesService.getAgenda(parisMidnight(monday), parisMidnight(addDays(monday, 7)));
+  const from = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', timeZone: PARIS }).format(parisMidnight(monday));
+  const to = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: PARIS }).format(parisMidnight(addDays(monday, 6)));
+  const embed = new EmbedBuilder().setColor(0x735b8b).setTitle(`📅 Planning du ${from} au ${to}`).setTimestamp();
   if (client.user) embed.setFooter({ text: client.user.tag, iconURL: client.user.displayAvatarURL() });
-  for (const day of [thursday, friday]) {
+  for (let offset = 0; offset < 7; offset++) {
+    const day = addDays(monday, offset);
     const lines = events.map((event) => {
       const start = eventDate(event.start_date); const end = eventDate(event.end_date);
       if (!start || parisDateKey(start) !== day) return null;
@@ -50,7 +59,8 @@ export async function buildThursdayFridayPlanning(client: Client, reference = ne
       return `**${when} · ${text(event.name) || text(event.type) || 'Cours'}**${details ? `\n${details}` : ''}`;
     }).filter((line): line is string => Boolean(line));
     const label = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: PARIS }).format(parisMidnight(day));
-    embed.addFields({ name: label.charAt(0).toUpperCase() + label.slice(1), value: (lines.join('\n\n') || 'Aucun cours prévu.').slice(0, 1024) });
+    if (lines.length) embed.addFields({ name: label.charAt(0).toUpperCase() + label.slice(1), value: lines.join('\n\n').slice(0, 1024) });
   }
+  if (!embed.data.fields?.length) embed.setDescription('Aucun cours prévu cette semaine.');
   return embed;
 }

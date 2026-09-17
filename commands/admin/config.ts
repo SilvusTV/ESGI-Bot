@@ -1,7 +1,8 @@
 import { ApplicationCommandOptionType, ChannelType, PermissionFlagsBits } from 'discord.js';
 import { ConfigRepository, CONFIG_KEYS } from '../../utils/db';
 
-const allowedKeys = Object.values(CONFIG_KEYS);
+const allowedKeys = [CONFIG_KEYS.customCommandPrefix, CONFIG_KEYS.homeworkChannelId,
+  CONFIG_KEYS.homeworkReminderEnabled, CONFIG_KEYS.planningChannelId] as const;
 
 export = {
   name: 'config',
