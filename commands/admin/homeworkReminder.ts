@@ -16,10 +16,11 @@ export = {
   ],
   async runInteraction(client: any, interaction: any) {
     if (!interaction.guildId) return interaction.reply({ content: 'Commande disponible uniquement sur un serveur.', ephemeral: true });
-    const repo = new ConfigRepository(); repo.ensureDefaults();
+    const repo = new ConfigRepository(interaction.guildId); repo.ensureDefaults();
     if (interaction.options.getSubcommand() === 'configurer') {
       const active = interaction.options.getBoolean('active', true);
       const channel = interaction.options.getChannel('salon');
+      if (channel && channel.guildId !== interaction.guildId) return interaction.reply({ content: 'Choisis un salon de ce serveur.', ephemeral: true });
       const existing = repo.getValue(CONFIG_KEYS.homeworkChannelId);
       if (active && !channel && !existing) return interaction.reply({ content: 'Choisis un salon avant d’activer les rappels.', ephemeral: true });
       if (channel) repo.upsert(CONFIG_KEYS.homeworkChannelId, channel.id);
@@ -31,7 +32,7 @@ export = {
     const channel = await interaction.guild.channels.fetch(channelId);
     if (!channel?.isTextBased()) return interaction.reply({ content: 'Le salon configuré est introuvable.', ephemeral: true });
     const until = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60;
-    await channel.send({ embeds: [buildHomeworkEmbed(client, until)] });
+    await channel.send({ embeds: [buildHomeworkEmbed(client, interaction.guildId, until)] });
     return interaction.reply({ content: `Rappel envoyé dans <#${channelId}>.`, ephemeral: true });
   },
 };

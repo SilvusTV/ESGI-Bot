@@ -2,7 +2,9 @@
 
 Un noyau (kernel) minimaliste, moderne et extensible pour créer des bots Discord avec TypeScript et discord.js v14.
 
-Le projet intègre désormais le domaine scolaire de l'ancien DSD-GES Bot : gestion dynamique des intervenants (`/intervenant`), des matières (`/matiere`), des devoirs (`/devoir`), mémo des contacts (`/memo`) et rappels hebdomadaires (`/rappeldevoir`). Le bot fonctionne avec une configuration et une base uniques pour son serveur Discord, et les sélections liées à la base utilisent l'autocomplétion.
+Le projet intègre désormais le domaine scolaire de l'ancien DSD-GES Bot : gestion dynamique des intervenants (`/intervenant`), des matières (`/matiere`), des devoirs (`/devoir`), mémo des contacts (`/memo`) et rappels hebdomadaires (`/rappeldevoir`). Chaque serveur Discord possède sa propre base SQLite dans `DB/guilds/<id>.db`, sa configuration, ses données scolaires et sa connexion MyGES. Les sélections liées à la base utilisent l'autocomplétion.
+
+Au premier démarrage après la mise à jour, l'ancienne base `DB/bot.db` est copiée vers la base du serveur d'origine. Si le bot est déjà présent sur plusieurs serveurs, renseignez `LEGACY_GUILD_ID` avec l'identifiant Discord de ce serveur avant de démarrer. Conservez une sauvegarde de `DB/bot.db` ; la migration ne modifie pas ce fichier. Chaque serveur doit ensuite utiliser `/gesaccount configurer` pour connecter son propre compte MyGES. Les jetons restent uniquement en mémoire et doivent être renouvelés après un redémarrage.
 
 Le salon du planning se configure avec `/config action:set key:Salon du planning channel:#salon`. Chaque dimanche à 18 h (`Europe/Paris`), le bot y publie le planning de la semaine suivante, avec un embed par journée de cours. Les journées sans cours sont omises. La commande `/planning` publie ou actualise le planning de la semaine en cours dans ce salon.
 

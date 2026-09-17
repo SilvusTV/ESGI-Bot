@@ -10,12 +10,12 @@ export = {
   description: 'Publier ou actualiser le planning de la semaine en cours.',
   async runInteraction(client: any, interaction: any) {
     if (!interaction.guildId) return interaction.reply({ content: 'Commande disponible uniquement sur un serveur.', ephemeral: true });
-    if (!new ConfigRepository().getValue(CONFIG_KEYS.planningChannelId)) {
+    if (!new ConfigRepository(interaction.guildId).getValue(CONFIG_KEYS.planningChannelId)) {
       return interaction.reply({ content: 'Configure d’abord le salon du planning avec `/config`.', ephemeral: true });
     }
     await interaction.deferReply({ ephemeral: true });
     try {
-      const result = await publishWeeklyPlanning(client, weekStart());
+      const result = await publishWeeklyPlanning(client, interaction.guildId, weekStart());
       return interaction.editReply(result === 'updated' ? 'Planning de la semaine actualisé.' : 'Planning de la semaine envoyé.');
     } catch (error) {
       const message = (error as Error).message === 'MYGES_AUTH_REQUIRED'

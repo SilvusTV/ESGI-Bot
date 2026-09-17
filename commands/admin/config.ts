@@ -55,7 +55,7 @@ export = {
       return interaction.reply({ content: 'Cette commande doit être utilisée dans un serveur.', ephemeral: true });
     }
 
-    const configRepository = new ConfigRepository();
+    const configRepository = new ConfigRepository(interaction.guildId);
     configRepository.ensureDefaults();
 
     const action = interaction.options.getString('action', true);
@@ -87,6 +87,9 @@ export = {
 
     if (action === 'set') {
       const isChannelKey = validatedKey === CONFIG_KEYS.planningChannelId || validatedKey === CONFIG_KEYS.homeworkChannelId;
+      if (isChannelKey && channel?.guildId !== interaction.guildId) {
+        return interaction.reply({ content: 'Choisis un salon de ce serveur.', ephemeral: true });
+      }
       const effectiveValue = isChannelKey ? channel?.id : value?.trim();
       if (!effectiveValue) {
         if (isChannelKey) {

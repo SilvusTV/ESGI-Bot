@@ -1,6 +1,6 @@
 import { ApplicationCommandOptionType, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { AcademicRepository } from '../../utils/db';
-import { defaultTeacherEmail, myGesService } from '../../utils/ges/MyGesService';
+import { defaultTeacherEmail, getMyGesService } from '../../utils/ges/MyGesService';
 import { EMBED_COLOR, matchingChoices } from '../../utils/homework';
 
 const teacherOption = { name: 'intervenant', description: 'Intervenant concerné', type: ApplicationCommandOptionType.Integer, required: true, autocomplete: true };
@@ -25,22 +25,22 @@ export = {
   ],
   async autocomplete(_client: unknown, interaction: any) {
     if (!interaction.guildId) return interaction.respond([]);
-    const focused = interaction.options.getFocused(true); const repo = new AcademicRepository();
+    const focused = interaction.options.getFocused(true); const repo = new AcademicRepository(interaction.guildId);
     if (focused.name === 'prof_myges') {
       const existing = new Set(repo.listTeachers().map((item) => item.gesTeacherId).filter((id): id is number => id !== null));
-      const available = (await myGesService.getTeachers()).filter((item) => !existing.has(item.teacherId));
+      const available = (await getMyGesService(interaction.guildId).getTeachers()).filter((item) => !existing.has(item.teacherId));
       return interaction.respond(matchingChoices(available.map(item => ({ ...item, id: item.teacherId })), item => `${item.firstName} ${item.lastName}`, focused.value));
     }
     return interaction.respond(matchingChoices(repo.listTeachers(), item => `${item.firstName} ${item.lastName}`, focused.value));
   },
   async runInteraction(_client: unknown, interaction: any) {
     if (!interaction.guildId) return interaction.reply({ content: 'Commande disponible uniquement sur un serveur.', ephemeral: true });
-    const repo = new AcademicRepository(); const action = interaction.options.getSubcommand();
+    const repo = new AcademicRepository(interaction.guildId); const action = interaction.options.getSubcommand();
     if (action === 'ajouter') {
       const gesTeacherId = interaction.options.getInteger('prof_myges', true);
       if (repo.listTeachers().some(item => item.gesTeacherId === gesTeacherId)) return interaction.reply({ content: 'Cet intervenant a déjà été ajouté.', ephemeral: true });
       let remote;
-      try { remote = (await myGesService.getTeachers()).find(item => item.teacherId === gesTeacherId); }
+      try { remote = (await getMyGesService(interaction.guildId).getTeachers()).find(item => item.teacherId === gesTeacherId); }
       catch { return interaction.reply({ content: 'MyGES n’est pas connecté. Utilise `/gesaccount reconnecter`.', ephemeral: true }); }
       if (!remote) return interaction.reply({ content: 'Intervenant MyGES introuvable. Relance l’autocomplétion.', ephemeral: true });
       const email = interaction.options.getString('email')?.trim() || defaultTeacherEmail(remote.firstName, remote.lastName);

@@ -6,7 +6,7 @@ type CreateInput = { title: string; command: string; description: string; respon
 type UpdateInput = { title?: string; description?: string; response?: string; isActive?: boolean };
 
 export class CustomCommandRepository {
-  constructor(private readonly db: AppDb = getDb()) {}
+  constructor(guildId: string, private readonly db: AppDb = getDb(guildId)) {}
   normalizeCommandName(raw: string): string { return raw.trim().toLowerCase().replace(/\s+/g, '-'); }
 
   findByCommand(commandName: string): CustomCommand | undefined {

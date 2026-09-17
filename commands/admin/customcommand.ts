@@ -107,7 +107,7 @@ export = {
       return interaction.reply({ content: 'Cette commande doit être utilisée dans un serveur.', ephemeral: true });
     }
 
-    const repository = new CustomCommandRepository();
+    const repository = new CustomCommandRepository(interaction.guildId);
     const subcommand = interaction.options.getSubcommand(true);
 
     if (subcommand === 'create') {

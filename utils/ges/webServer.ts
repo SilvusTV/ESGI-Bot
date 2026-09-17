@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'http';
-import { myGesService } from './MyGesService';
+import { authenticatedGuildCount, findLoginService } from './MyGesService';
 import Logger from '../Logger';
 
 const MAX_BODY_SIZE = 16 * 1024;
@@ -33,11 +33,12 @@ export function startWebServer(): void {
   const server = createServer(async (req, res) => {
     try {
       const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
-      if (req.method === 'GET' && url.pathname === '/health') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ ok: true, myGesAuthenticated: myGesService.hasToken() })); }
+      if (req.method === 'GET' && url.pathname === '/health') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ ok: true, myGesAuthenticatedGuilds: authenticatedGuildCount() })); }
       const match = /^\/ges\/login\/([0-9a-f-]+)$/.exec(url.pathname);
       if (!match) return send(res, 404, page('Page introuvable', '<p>Ce lien n’existe pas.</p>'));
-      const session = myGesService.getLoginSession(match[1]);
-      if (!session) return send(res, 410, page('Lien expiré', '<p>Demande un nouveau lien de connexion sur Discord.</p>'));
+      const myGesService = findLoginService(match[1]);
+      const session = myGesService?.getLoginSession(match[1]);
+      if (!session || !myGesService) return send(res, 410, page('Lien expiré', '<p>Demande un nouveau lien de connexion sur Discord.</p>'));
       if (req.method === 'GET') return send(res, 200, page('Connexion MyGES', `<p>Les identifiants sont transmis directement à MyGES et ne sont pas enregistrés.</p><form method="post" autocomplete="on"><label>Identifiant<input name="username" autocomplete="username" required></label><label>Mot de passe<input type="password" name="password" autocomplete="current-password" required></label><button type="submit">Se connecter</button></form>`));
       if (req.method !== 'POST') return send(res, 405, page('Méthode refusée', '<p>Requête non autorisée.</p>'));
       const form = await readForm(req); const username = form.get('username')?.trim(); const password = form.get('password');

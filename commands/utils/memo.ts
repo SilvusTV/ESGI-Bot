@@ -8,12 +8,13 @@ export = {
   description: 'Afficher les coordonnées et matières d’un intervenant.',
   options: [{ name: 'intervenant', description: 'Afficher uniquement cet intervenant', type: ApplicationCommandOptionType.Integer, required: false, autocomplete: true }],
   async autocomplete(_client: unknown, interaction: any) {
-    const focused = interaction.options.getFocused(); const rows = new AcademicRepository().listTeachers();
+    if (!interaction.guildId) return interaction.respond([]);
+    const focused = interaction.options.getFocused(); const rows = new AcademicRepository(interaction.guildId).listTeachers();
     return interaction.respond(matchingChoices(rows, item => `${item.firstName} ${item.lastName}`, focused));
   },
   async runInteraction(_client: unknown, interaction: any) {
     if (!interaction.guildId) return interaction.reply({ content: 'Commande disponible uniquement sur un serveur.', ephemeral: true });
-    const repo = new AcademicRepository(); const teacherId = interaction.options.getInteger('intervenant');
+    const repo = new AcademicRepository(interaction.guildId); const teacherId = interaction.options.getInteger('intervenant');
     if (teacherId !== null) {
       const selected = repo.getTeacher(teacherId);
       if (!selected) return interaction.reply({ content: 'Intervenant introuvable.', ephemeral: true });

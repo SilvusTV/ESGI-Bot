@@ -1,6 +1,6 @@
 import { ApplicationCommandOptionType, PermissionFlagsBits } from 'discord.js';
 import { AcademicRepository } from '../../utils/db';
-import { myGesService } from '../../utils/ges/MyGesService';
+import { getMyGesService } from '../../utils/ges/MyGesService';
 import { buildHomeworkEmbed, matchingChoices, parseFrenchDate } from '../../utils/homework';
 
 const subjectOption = { name: 'matiere', description: 'Matière concernée', type: ApplicationCommandOptionType.Integer, required: true, autocomplete: true };
@@ -28,12 +28,12 @@ export = {
   ],
   async autocomplete(_client: unknown, interaction: any) {
     if (!interaction.guildId) return interaction.respond([]);
-    const repo = new AcademicRepository(); const focused = interaction.options.getFocused(true);
+    const repo = new AcademicRepository(interaction.guildId); const focused = interaction.options.getFocused(true);
     if (focused.name === 'prochain_cours') {
       const subjectId = interaction.options.getInteger('matiere'); const subject = subjectId ? repo.getSubject(subjectId) : null;
       if (!subject) return interaction.respond([]);
       const seen = new Set<number>();
-      const courses = (await myGesService.getUpcomingCourses()).filter(course => {
+      const courses = (await getMyGesService(interaction.guildId).getUpcomingCourses()).filter(course => {
         const timestamp = Math.floor(course.startAt / 1000);
         if (course.name.toLocaleLowerCase('fr') !== subject.name.toLocaleLowerCase('fr') || seen.has(timestamp)) return false;
         seen.add(timestamp); return true;
@@ -50,8 +50,8 @@ export = {
   },
   async runInteraction(client: any, interaction: any) {
     if (!interaction.guildId) return interaction.reply({ content: 'Commande disponible uniquement sur un serveur.', ephemeral: true });
-    const repo = new AcademicRepository(); const action = interaction.options.getSubcommand();
-    if (action === 'liste') return interaction.reply({ embeds: [buildHomeworkEmbed(client)] });
+    const repo = new AcademicRepository(interaction.guildId); const action = interaction.options.getSubcommand();
+    if (action === 'liste') return interaction.reply({ embeds: [buildHomeworkEmbed(client, interaction.guildId)] });
     if (action === 'supprimer') {
       if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels)) return interaction.reply({ content: 'La permission Gérer les salons est requise.', ephemeral: true });
       const changes = repo.deleteHomework(interaction.options.getInteger('devoir', true));
@@ -65,7 +65,7 @@ export = {
     let dueAt = nextCourse ?? parseFrenchDate(manualDate, interaction.options.getString('heure') || '00:00');
     if (nextCourse !== null) {
       try {
-        const validCourse = (await myGesService.getUpcomingCourses()).some(course => course.name.toLocaleLowerCase('fr') === repo.getSubject(subjectId)!.name.toLocaleLowerCase('fr') && Math.floor(course.startAt / 1000) === nextCourse);
+        const validCourse = (await getMyGesService(interaction.guildId).getUpcomingCourses()).some(course => course.name.toLocaleLowerCase('fr') === repo.getSubject(subjectId)!.name.toLocaleLowerCase('fr') && Math.floor(course.startAt / 1000) === nextCourse);
         if (!validCourse) dueAt = null;
       } catch { return interaction.reply({ content: 'Impossible de vérifier cette séance auprès de MyGES.', ephemeral: true }); }
     }

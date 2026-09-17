@@ -1,5 +1,5 @@
 import { EmbedBuilder, type Client } from 'discord.js';
-import { myGesService } from './MyGesService';
+import { getMyGesService } from './MyGesService';
 
 const PARIS = 'Europe/Paris';
 
@@ -40,8 +40,8 @@ export function weekStart(reference = new Date(), nextWeek = false): string {
   return addDays(today, 1 - (weekday || 7) + (nextWeek ? 7 : 0));
 }
 
-export async function buildWeeklyPlanning(client: Client, monday: string): Promise<EmbedBuilder[]> {
-  const events = await myGesService.getAgenda(parisMidnight(monday), parisMidnight(addDays(monday, 7)));
+export async function buildWeeklyPlanning(client: Client, guildId: string, monday: string): Promise<EmbedBuilder[]> {
+  const events = await getMyGesService(guildId).getAgenda(parisMidnight(monday), parisMidnight(addDays(monday, 7)));
   const embeds: EmbedBuilder[] = [];
   for (let offset = 0; offset < 7; offset++) {
     const day = addDays(monday, offset);

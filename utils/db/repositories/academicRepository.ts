@@ -6,7 +6,7 @@ export type SubjectWithTeacher = Subject & { teacherFirstName: string | null; te
 export type HomeworkWithSubject = Homework & { subjectName: string; teacherFirstName: string | null; teacherLastName: string | null };
 
 export class AcademicRepository {
-  constructor(private readonly db: AppDb = getDb()) {}
+  constructor(guildId: string, private readonly db: AppDb = getDb(guildId)) {}
   listTeachers(): Teacher[] { return this.db.select().from(teacher).orderBy(asc(teacher.lastName)).all(); }
   getTeacher(id: number): Teacher | undefined { return this.db.select().from(teacher).where(eq(teacher.id, id)).get(); }
   addTeacher(gesTeacherId: number, firstName: string, lastName: string, email: string): Teacher {

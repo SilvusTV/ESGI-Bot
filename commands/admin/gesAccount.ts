@@ -1,7 +1,7 @@
 import { ApplicationCommandOptionType, PermissionFlagsBits } from 'discord.js';
 import { CONFIG_KEYS, ConfigRepository } from '../../utils/db';
 import { sendGesLoginRequest } from '../../utils/ges/GesAccountManager';
-import { myGesService } from '../../utils/ges/MyGesService';
+import { getMyGesService } from '../../utils/ges/MyGesService';
 
 export = {
   name: 'gesaccount', category: 'admin', ownerOnly: false,
@@ -18,14 +18,14 @@ export = {
   ],
   async runInteraction(_client: unknown, interaction: any) {
     if (!interaction.guildId) return interaction.reply({ content: 'Commande disponible uniquement sur un serveur.', ephemeral: true });
-    const repo = new ConfigRepository(); const action = interaction.options.getSubcommand();
-    if (action === 'statut') return interaction.reply({ content: myGesService.hasToken() ? '✅ Le compte MyGES est connecté.' : '⚠️ Aucun token MyGES valide en mémoire.', ephemeral: true });
+    const repo = new ConfigRepository(interaction.guildId); const action = interaction.options.getSubcommand();
+    if (action === 'statut') return interaction.reply({ content: getMyGesService(interaction.guildId).hasToken() ? '✅ Le compte MyGES est connecté.' : '⚠️ Aucun token MyGES valide en mémoire.', ephemeral: true });
     if (action === 'diagnostic') {
       await interaction.deferReply({ ephemeral: true });
-      if (!myGesService.hasToken()) return interaction.editReply('⚠️ Aucun token MyGES valide en mémoire.');
+      if (!getMyGesService(interaction.guildId).hasToken()) return interaction.editReply('⚠️ Aucun token MyGES valide en mémoire.');
       try {
-        const years = await myGesService.getAvailableYears();
-        const teachers = await myGesService.getTeachers(undefined, true);
+        const years = await getMyGesService(interaction.guildId).getAvailableYears();
+        const teachers = await getMyGesService(interaction.guildId).getTeachers(undefined, true);
         return interaction.editReply(`✅ API MyGES accessible.\nAnnées détectées : ${years.map(year => `\`${year}\``).join(', ')}\nIntervenants exploitables : **${teachers.length}**.`);
       } catch (error) {
         return interaction.editReply(`❌ Diagnostic MyGES en échec : \`${String(error).slice(0, 300)}\``);
@@ -41,7 +41,7 @@ export = {
       if (!userId) return interaction.reply({ content: 'Configure d’abord un responsable avec `/gesaccount configurer`.', ephemeral: true });
       user = await interaction.client.users.fetch(userId);
     }
-    try { await sendGesLoginRequest(user); myGesService.markLoginRequested(); }
+    try { await sendGesLoginRequest(user, interaction.guildId); getMyGesService(interaction.guildId).markLoginRequested(); }
     catch { return interaction.reply({ content: 'Impossible d’envoyer un message privé. La personne doit autoriser les MP du serveur.', ephemeral: true }); }
     return interaction.reply({ content: `Lien de connexion envoyé en privé à ${user}.`, ephemeral: true });
   },

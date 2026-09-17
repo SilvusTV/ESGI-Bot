@@ -5,7 +5,7 @@ const AUTH_URL = 'https://authentication.kordis.fr/oauth/authorize?response_type
 const API_URL = 'https://api.kordis.fr';
 const LOGIN_TTL_MS = 15 * 60 * 1000;
 
-type LoginSession = { discordUserId: string; expiresAt: number; attempts: number };
+type LoginSession = { discordUserId: string; guildId: string; expiresAt: number; attempts: number };
 export type MyGesTeacher = { teacherId: number; firstName: string; lastName: string };
 export type MyGesCourse = { name: string; teacherId: number; startAt: number; endAt: number | null };
 type MyGesTeachersResponse = { result?: Array<Record<string, unknown>> };
@@ -28,10 +28,10 @@ export class MyGesService {
 
   hasToken(): boolean { return this.accessToken !== null; }
 
-  createLoginSession(discordUserId: string): string {
+  createLoginSession(discordUserId: string, guildId: string): string {
     this.cleanupSessions();
     const id = randomUUID();
-    this.sessions.set(id, { discordUserId, expiresAt: Date.now() + LOGIN_TTL_MS, attempts: 0 });
+    this.sessions.set(id, { discordUserId, guildId, expiresAt: Date.now() + LOGIN_TTL_MS, attempts: 0 });
     return id;
   }
 
@@ -151,7 +151,27 @@ export class MyGesService {
   private cleanupSessions(): void { for (const [id, session] of this.sessions) { if (session.expiresAt < Date.now()) this.sessions.delete(id); } }
 }
 
-export const myGesService = new MyGesService();
+const services = new Map<string, MyGesService>();
+export function getMyGesService(guildId: string): MyGesService {
+  let service = services.get(guildId);
+  if (!service) { service = new MyGesService(); services.set(guildId, service); }
+  return service;
+}
+
+const loginSessions = new Map<string, string>();
+export function createGuildLoginSession(guildId: string, userId: string): string {
+  const id = getMyGesService(guildId).createLoginSession(userId, guildId);
+  loginSessions.set(id, guildId);
+  return id;
+}
+export function findLoginService(id: string): MyGesService | null {
+  const guildId = loginSessions.get(id);
+  if (!guildId) return null;
+  const service = getMyGesService(guildId);
+  if (!service.getLoginSession(id)) { loginSessions.delete(id); return null; }
+  return service;
+}
+export function authenticatedGuildCount(): number { return [...services.values()].filter(service => service.hasToken()).length; }
 
 export function currentAcademicYear(date = new Date()): string {
   if (process.env.MYGES_YEAR) return process.env.MYGES_YEAR;

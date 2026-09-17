@@ -15,7 +15,7 @@ export const CONFIG_KEYS = {
 export type ConfigKey = (typeof CONFIG_KEYS)[keyof typeof CONFIG_KEYS];
 
 export class ConfigRepository {
-  constructor(private readonly db: AppDb = getDb()) {}
+  constructor(guildId: string, private readonly db: AppDb = getDb(guildId)) {}
 
   ensureDefaults(): void {
     this.db.insert(config).values([

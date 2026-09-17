@@ -14,8 +14,8 @@ export function parseFrenchDate(value: string, time = '00:00'): number | null {
   return Math.floor(date.getTime() / 1000);
 }
 
-export function buildHomeworkEmbed(client: Client, until?: number): EmbedBuilder {
-  const rows = new AcademicRepository().listUpcomingHomework(until);
+export function buildHomeworkEmbed(client: Client, guildId: string, until?: number): EmbedBuilder {
+  const rows = new AcademicRepository(guildId).listUpcomingHomework(until);
   const embed = new EmbedBuilder().setColor(EMBED_COLOR).setTitle('Devoirs à venir').setTimestamp();
   if (client.user) embed.setFooter({ text: client.user.tag, iconURL: client.user.displayAvatarURL() });
   if (!rows.length) return embed.setDescription('Aucun devoir en vue.');

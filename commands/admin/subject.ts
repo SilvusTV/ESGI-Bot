@@ -1,6 +1,6 @@
 import { ApplicationCommandOptionType, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { AcademicRepository } from '../../utils/db';
-import { defaultTeacherEmail, myGesService, type MyGesCourse } from '../../utils/ges/MyGesService';
+import { defaultTeacherEmail, getMyGesService, type MyGesCourse } from '../../utils/ges/MyGesService';
 import { EMBED_COLOR, matchingChoices } from '../../utils/homework';
 
 const subjectOption = { name: 'matiere', description: 'Matière concernée', type: ApplicationCommandOptionType.Integer, required: true, autocomplete: true };
@@ -27,11 +27,11 @@ export = {
   ],
   async autocomplete(_client: unknown, interaction: any) {
     if (!interaction.guildId) return interaction.respond([]);
-    const repo = new AcademicRepository(); const focused = interaction.options.getFocused(true);
+    const repo = new AcademicRepository(interaction.guildId); const focused = interaction.options.getFocused(true);
     if (focused.name === 'cours_myges') {
       const existingNames = new Set(repo.listSubjects().map(item => item.name.toLocaleLowerCase('fr')));
       const seen = new Set<string>();
-      const courses = (await myGesService.getUpcomingCourses()).filter((course) => {
+      const courses = (await getMyGesService(interaction.guildId).getUpcomingCourses()).filter((course) => {
         const key = courseKey(course); if (seen.has(key) || existingNames.has(course.name.toLocaleLowerCase('fr'))) return false;
         seen.add(key); return true;
       });
@@ -44,19 +44,19 @@ export = {
   },
   async runInteraction(_client: unknown, interaction: any) {
     if (!interaction.guildId) return interaction.reply({ content: 'Commande disponible uniquement sur un serveur.', ephemeral: true });
-    const repo = new AcademicRepository(); const action = interaction.options.getSubcommand();
+    const repo = new AcademicRepository(interaction.guildId); const action = interaction.options.getSubcommand();
     if (action === 'liste') {
       const rows = repo.listSubjects(); const description = rows.map(item => `**${item.name}**${item.teacherLastName ? ` — ${item.teacherFirstName} ${item.teacherLastName}` : ''}`).join('\n');
       return interaction.reply({ embeds: [new EmbedBuilder().setColor(EMBED_COLOR).setTitle('Matières').setDescription(description || 'Aucune matière enregistrée.')], ephemeral: true });
     }
     if (action === 'ajouter') {
-      let courses; try { courses = await myGesService.getUpcomingCourses(); } catch { return interaction.reply({ content: 'MyGES n’est pas connecté. Utilise `/gesaccount reconnecter`.', ephemeral: true }); }
+      let courses; try { courses = await getMyGesService(interaction.guildId).getUpcomingCourses(); } catch { return interaction.reply({ content: 'MyGES n’est pas connecté. Utilise `/gesaccount reconnecter`.', ephemeral: true }); }
       const selected = courses.find(course => courseKey(course) === interaction.options.getString('cours_myges', true));
       if (!selected) return interaction.reply({ content: 'Cours MyGES introuvable. Relance l’autocomplétion.', ephemeral: true });
       if (repo.listSubjects().some(item => item.name.toLocaleLowerCase('fr') === selected.name.toLocaleLowerCase('fr'))) return interaction.reply({ content: 'Cette matière existe déjà.', ephemeral: true });
       let localTeacher = repo.listTeachers().find(item => item.gesTeacherId === selected.teacherId);
       if (!localTeacher) {
-        const remoteTeacher = (await myGesService.getTeachers()).find(item => item.teacherId === selected.teacherId);
+        const remoteTeacher = (await getMyGesService(interaction.guildId).getTeachers()).find(item => item.teacherId === selected.teacherId);
         if (!remoteTeacher) return interaction.reply({ content: 'Le professeur associé est introuvable dans l’annuaire MyGES.', ephemeral: true });
         localTeacher = repo.addTeacher(remoteTeacher.teacherId, remoteTeacher.firstName, remoteTeacher.lastName, defaultTeacherEmail(remoteTeacher.firstName, remoteTeacher.lastName));
       }
