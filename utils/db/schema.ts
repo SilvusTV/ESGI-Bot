@@ -36,12 +36,14 @@ export const teacher = sqliteTable(
   'teacher',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
+    gesTeacherId: integer('ges_teacher_id'),
     firstName: text('first_name').notNull(),
     lastName: text('last_name').notNull(),
     email: text('email').notNull(),
     createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
     updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
   },
+  (table) => ({ gesTeacherUnique: uniqueIndex('teacher_ges_teacher_unique').on(table.gesTeacherId) }),
 );
 
 export const subject = sqliteTable(

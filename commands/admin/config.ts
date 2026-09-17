@@ -1,4 +1,4 @@
-import { ApplicationCommandOptionType, PermissionFlagsBits } from 'discord.js';
+import { ApplicationCommandOptionType, ChannelType, PermissionFlagsBits } from 'discord.js';
 import { ConfigRepository, CONFIG_KEYS } from '../../utils/db';
 
 const allowedKeys = Object.values(CONFIG_KEYS);
@@ -32,12 +32,20 @@ export = {
         { name: 'Préfixe des commandes personnalisées', value: CONFIG_KEYS.customCommandPrefix },
         { name: 'Salon des rappels de devoirs', value: CONFIG_KEYS.homeworkChannelId },
         { name: 'Rappels de devoirs activés', value: CONFIG_KEYS.homeworkReminderEnabled },
+        { name: 'Salon du planning', value: CONFIG_KEYS.planningChannelId },
       ],
     },
     {
       name: 'value',
       description: 'Nouvelle valeur',
       type: ApplicationCommandOptionType.String,
+      required: false,
+    },
+    {
+      name: 'channel',
+      description: 'Salon à utiliser pour une configuration de salon',
+      type: ApplicationCommandOptionType.Channel,
+      channelTypes: [ChannelType.GuildText],
       required: false,
     },
   ],
@@ -52,6 +60,7 @@ export = {
     const action = interaction.options.getString('action', true);
     const key = interaction.options.getString('key');
     const value = interaction.options.getString('value');
+    const channel = interaction.options.getChannel('channel');
 
     if (action === 'list') {
       const rows = configRepository.list();
@@ -76,7 +85,12 @@ export = {
     }
 
     if (action === 'set') {
-      if (!value || !value.trim().length) {
+      const isChannelKey = validatedKey === CONFIG_KEYS.planningChannelId || validatedKey === CONFIG_KEYS.homeworkChannelId;
+      const effectiveValue = isChannelKey ? channel?.id : value?.trim();
+      if (!effectiveValue) {
+        if (isChannelKey) {
+          return interaction.reply({ content: 'Choisis le salon avec l’option `channel`.', ephemeral: true });
+        }
         return interaction.reply({ content: 'La valeur est obligatoire pour `set`.', ephemeral: true });
       }
 
@@ -91,7 +105,7 @@ export = {
         return interaction.reply({ content: 'Cette valeur doit être `true` ou `false`.', ephemeral: true });
       }
 
-      const updated = configRepository.upsert(validatedKey, value.trim());
+      const updated = configRepository.upsert(validatedKey, effectiveValue);
       return interaction.reply({
         content: `Config mise à jour: \`${updated?.key}\` = \`${updated?.value}\``,
         ephemeral: true,

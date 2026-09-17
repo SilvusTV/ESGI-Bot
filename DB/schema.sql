@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS customCommand (
 
 CREATE TABLE IF NOT EXISTS teacher (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ges_teacher_id INTEGER UNIQUE,
   first_name TEXT NOT NULL,
   last_name TEXT NOT NULL,
   email TEXT NOT NULL,

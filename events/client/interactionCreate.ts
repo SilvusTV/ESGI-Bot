@@ -5,7 +5,11 @@ export = {
     if (interaction.isAutocomplete()) {
       const cmd = client.commands.get(interaction.commandName);
       if (!cmd?.autocomplete) return interaction.respond([]);
-      try { await cmd.autocomplete(client, interaction); } catch { await interaction.respond([]).catch(() => undefined); }
+      try { await cmd.autocomplete(client, interaction); }
+      catch (error) {
+        console.error(`Erreur autocomplétion /${interaction.commandName}:`, error);
+        await interaction.respond([]).catch(() => undefined);
+      }
     } else if (interaction.isCommand() || interaction.isContextMenuCommand()) {
       const cmd = client.commands.get(interaction.commandName);
       if (!cmd) return interaction.reply("Cette commande n'existe pas !");

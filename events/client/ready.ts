@@ -3,6 +3,7 @@ import Logger from '../../utils/Logger';
 import { ConfigRepository, ensureDatabaseInitialized } from '../../utils/db';
 import { startHomeworkReminder } from '../../utils/handlers/HomeworkReminder';
 import { initializeGesAccountManager } from '../../utils/ges/GesAccountManager';
+import { startPlanningReminder } from '../../utils/handlers/PlanningReminder';
 
 export = {
   name: 'clientReady',
@@ -15,6 +16,7 @@ export = {
 
     configRepository.ensureDefaults();
     startHomeworkReminder(client);
+    startPlanningReminder(client);
     await initializeGesAccountManager(client);
 
     client.user.setPresence({ activities: [{ name: 'You', type: ActivityType.Watching }], status: 'online' });

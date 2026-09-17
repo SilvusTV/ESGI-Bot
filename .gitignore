@@ -13,3 +13,4 @@ dist/
 .idea
 /color
 DB/bot.db
+DB/bot.db-*

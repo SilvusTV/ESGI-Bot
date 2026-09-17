@@ -41,12 +41,24 @@ export async function ensureDatabaseInitialized(): Promise<void> {
               db.close(() => reject(execErr));
               return;
             }
-            Logger.info(`Database schema ensured from ${schemaPath}`);
-            db.close((closeErr) => {
+            const finish = () => db.close((closeErr) => {
               if (closeErr) {
                 Logger.warn(`DB closed with warning: ${closeErr.message}`);
               }
               resolve();
+            });
+            db.all("PRAGMA table_info('teacher')", (columnsErr, columns: Array<{ name: string }>) => {
+              if (columnsErr) { db.close(() => reject(columnsErr)); return; }
+              if (columns.some((column) => column.name === 'ges_teacher_id')) {
+                Logger.info(`Database schema ensured from ${schemaPath}`);
+                finish();
+                return;
+              }
+              db.exec('ALTER TABLE teacher ADD COLUMN ges_teacher_id INTEGER; CREATE UNIQUE INDEX IF NOT EXISTS teacher_ges_teacher_unique ON teacher (ges_teacher_id);', (alterErr) => {
+                if (alterErr) { db.close(() => reject(alterErr)); return; }
+                Logger.info(`Database schema ensured from ${schemaPath}`);
+                finish();
+              });
             });
           });
         };

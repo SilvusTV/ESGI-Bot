@@ -5,7 +5,7 @@ import { myGesService } from '../../utils/ges/MyGesService';
 
 export = {
   name: 'gesaccount', category: 'admin', ownerOnly: false,
-  usage: 'gesaccount configurer|reconnecter|statut', examples: ['gesaccount configurer @utilisateur'],
+  usage: 'gesaccount configurer|reconnecter|statut|diagnostic', examples: ['gesaccount configurer @utilisateur'],
   defaultMemberPermissions: PermissionFlagsBits.Administrator,
   description: 'Gérer la personne responsable de la connexion MyGES.',
   options: [
@@ -14,11 +14,23 @@ export = {
     ] },
     { name: 'reconnecter', description: 'Renvoyer immédiatement un lien de connexion', type: ApplicationCommandOptionType.Subcommand },
     { name: 'statut', description: 'Afficher l’état de la connexion en mémoire', type: ApplicationCommandOptionType.Subcommand },
+    { name: 'diagnostic', description: 'Tester l’annuaire MyGES et son année scolaire', type: ApplicationCommandOptionType.Subcommand },
   ],
   async runInteraction(_client: unknown, interaction: any) {
     if (!interaction.guildId) return interaction.reply({ content: 'Commande disponible uniquement sur un serveur.', ephemeral: true });
     const repo = new ConfigRepository(); const action = interaction.options.getSubcommand();
     if (action === 'statut') return interaction.reply({ content: myGesService.hasToken() ? '✅ Le compte MyGES est connecté.' : '⚠️ Aucun token MyGES valide en mémoire.', ephemeral: true });
+    if (action === 'diagnostic') {
+      await interaction.deferReply({ ephemeral: true });
+      if (!myGesService.hasToken()) return interaction.editReply('⚠️ Aucun token MyGES valide en mémoire.');
+      try {
+        const years = await myGesService.getAvailableYears();
+        const teachers = await myGesService.getTeachers(undefined, true);
+        return interaction.editReply(`✅ API MyGES accessible.\nAnnées détectées : ${years.map(year => `\`${year}\``).join(', ')}\nIntervenants exploitables : **${teachers.length}**.`);
+      } catch (error) {
+        return interaction.editReply(`❌ Diagnostic MyGES en échec : \`${String(error).slice(0, 300)}\``);
+      }
+    }
     let user;
     if (action === 'configurer') {
       user = interaction.options.getUser('utilisateur', true);

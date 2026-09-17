@@ -4,6 +4,10 @@ Un noyau (kernel) minimaliste, moderne et extensible pour créer des bots Discor
 
 Le projet intègre désormais le domaine scolaire de l'ancien DSD-GES Bot : gestion dynamique des intervenants (`/intervenant`), des matières (`/matiere`), des devoirs (`/devoir`), mémo des contacts (`/memo`) et rappels hebdomadaires (`/rappeldevoir`). Le bot fonctionne avec une configuration et une base uniques pour son serveur Discord, et les sélections liées à la base utilisent l'autocomplétion.
 
+Le salon du planning se configure avec `/config action:set key:Salon du planning channel:#salon`. Chaque mercredi à 18 h (`Europe/Paris`), le bot y publie les cours MyGES du jeudi et du vendredi.
+
+La création d’une matière peut partir directement d’un cours détecté dans l’agenda avec `/matiere ajouter`. Le professeur correspondant est associé grâce à son `teacher_id` et ajouté localement si nécessaire. Pour un devoir, `/devoir ajouter` propose les prochaines séances de la matière comme échéances, tout en conservant les champs de date et d’heure manuels pour une échéance hors cours.
+
 Ce projet n'est pas un bot « clé en main »: c'est une base solide pensée pour être réutilisée comme fondation d'autres bots. Il fournit la structure, les utilitaires et les conventions nécessaires pour ajouter rapidement vos commandes, événements et composants interactifs (select menus, etc.).
 
 ---
@@ -47,6 +51,8 @@ Ce projet n'est pas un bot « clé en main »: c'est une base solide pensée pou
      WEB_PORT=3000
      WEB_HOST=127.0.0.1
      WEB_PUBLIC_URL=https://bot.example.com
+     # Année scolaire utilisée pour l’annuaire MyGES (calculée automatiquement si absente)
+     # MYGES_YEAR=2026
      # Optionnel / recommandé
      NODE_ENV=development
      # CLIENT_ID et GUILD_ID sont utiles si vous publiez des commandes slash par guilde
@@ -203,6 +209,7 @@ Assurez‑vous de créer vos `StringSelectMenuBuilder` avec `setCustomId('choose
 - `WEB_PORT` (optionnel, `3000` par défaut): port du micro-serveur de connexion MyGES.
 - `WEB_HOST` (optionnel, `127.0.0.1` par défaut): interface d’écoute. Conservez cette valeur derrière un reverse proxy local.
 - `WEB_PUBLIC_URL` (requis pour un accès distant): URL HTTPS publique placée dans les messages privés Discord.
+- `MYGES_YEAR` (optionnel): année passée à l’endpoint `/me/{year}/teachers`. Par défaut, le bot utilise l’année de début de l’année scolaire courante.
 
 Le token MyGES est conservé uniquement en mémoire et disparaît à chaque redémarrage. Les identifiants saisis dans le formulaire ne sont jamais écrits en base ou dans les logs. En production, exposez impérativement le formulaire derrière HTTPS (Nginx, Caddy ou un proxy équivalent), puis renseignez cette adresse dans `WEB_PUBLIC_URL`.
 

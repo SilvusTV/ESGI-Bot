@@ -9,8 +9,8 @@ export class AcademicRepository {
   constructor(private readonly db: AppDb = getDb()) {}
   listTeachers(): Teacher[] { return this.db.select().from(teacher).orderBy(asc(teacher.lastName)).all(); }
   getTeacher(id: number): Teacher | undefined { return this.db.select().from(teacher).where(eq(teacher.id, id)).get(); }
-  addTeacher(firstName: string, lastName: string, email: string): Teacher {
-    const result = this.db.insert(teacher).values({ firstName, lastName, email }).run();
+  addTeacher(gesTeacherId: number, firstName: string, lastName: string, email: string): Teacher {
+    const result = this.db.insert(teacher).values({ gesTeacherId, firstName, lastName, email }).run();
     return this.getTeacher(Number(result.lastInsertRowid))!;
   }
   updateTeacher(id: number, values: Partial<Pick<Teacher, 'firstName' | 'lastName' | 'email'>>): number {
